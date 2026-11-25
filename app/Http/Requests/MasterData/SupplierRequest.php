@@ -21,7 +21,7 @@ class SupplierRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('suppliers', 'code')->ignore($id)->whereNull('deleted_at'),
+                Rule::unique('suppliers', 'code')->ignore($id),
             ],
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
@@ -34,7 +34,7 @@ class SupplierRequest extends FormRequest
     {
         return [
             'code.required' => 'Mã nhà cung cấp không được để trống.',
-            'code.unique' => 'Mã nhà cung cấp đã tồn tại.',
+            'code.unique' => 'Mã nhà cung cấp đã tồn tại trong hệ thống (kể cả bản ghi đã xóa).',
             'name.required' => 'Tên nhà cung cấp không được để trống.',
         ];
     }

@@ -152,15 +152,6 @@
                 </div>
 
                 <div>
-                    <label class="block text-slate-300 font-semibold mb-1">Tình trạng kỹ thuật <span class="text-rose-400">*</span></label>
-                    <select wire:model="condition" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:border-cyan-500">
-                        @foreach($conditions as $cond)
-                            <option value="{{ $cond->value }}">{{ $cond->label() }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
                     <label class="block text-slate-300 font-semibold mb-1">Trạng thái sử dụng <span class="text-rose-400">*</span></label>
                     <select wire:model="status" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:border-cyan-500">
                         @foreach($statuses as $st)

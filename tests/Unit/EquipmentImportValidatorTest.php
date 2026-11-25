@@ -272,4 +272,22 @@ class EquipmentImportValidatorTest extends TestCase
         $this->assertEquals(15000000.5, $result['rows'][1]['data']['purchase_price']);
         $this->assertTrue(str_contains(implode(' ', $result['rows'][2]['errors']), 'Giá mua'));
     }
+
+    public function test_invalid_calendar_date_such_as_february_31_fails(): void
+    {
+        $rawRows = [
+            [
+                'ma_thiet_bi' => 'EQ-DATE-FEB31',
+                'ten_thiet_bi' => 'Máy ngày 31 tháng 2',
+                'ma_model' => 'TEST-MODEL-01',
+                'ma_khoa_phong' => 'TEST-DEPT-01',
+                'ngay_nhap' => '31/02/2025',
+            ],
+        ];
+
+        $result = $this->validator->validateRows($rawRows);
+
+        $this->assertEquals(1, $result['error_count']);
+        $this->assertTrue(str_contains(implode(' ', $result['rows'][0]['errors']), "Ngày nhập '31/02/2025' không phải là ngày hợp lệ trong lịch."));
+    }
 }

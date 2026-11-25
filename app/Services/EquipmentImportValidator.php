@@ -10,7 +10,6 @@ use App\Models\Equipment;
 use App\Models\EquipmentModel;
 use App\Models\Location;
 use App\Models\Supplier;
-use Carbon\Carbon;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class EquipmentImportValidator
@@ -380,8 +379,18 @@ class EquipmentImportValidator
                 return null;
             }
 
-            if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $str)) {
-                return Carbon::createFromFormat('d/m/Y', $str)->format('Y-m-d');
+            if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $str, $matches)) {
+                $day = (int) $matches[1];
+                $month = (int) $matches[2];
+                $year = (int) $matches[3];
+
+                if (! checkdate($month, $day, $year)) {
+                    $errors[] = "{$fieldName} '{$str}' không phải là ngày hợp lệ trong lịch.";
+
+                    return null;
+                }
+
+                return sprintf('%04d-%02d-%02d', $year, $month, $day);
             }
 
             $errors[] = "{$fieldName} '{$str}' không đúng định dạng chuẩn (dd/mm/yyyy).";

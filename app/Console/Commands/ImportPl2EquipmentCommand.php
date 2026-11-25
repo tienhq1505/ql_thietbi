@@ -70,30 +70,6 @@ class ImportPl2EquipmentCommand extends Command
         $sheet = $spreadsheet->getActiveSheet();
         $highestRow = $sheet->getHighestRow();
 
-        $department = Department::where('code', 'CHUA-PHAN-KHOA')->first()
-            ?? Department::create(['code' => 'CHUA-PHAN-KHOA', 'name' => 'Chưa phân khoa', 'short_name' => 'Chưa phân khoa']);
-
-        // Master Data mặc định
-        $defaultCat = EquipmentCategory::firstOrCreate(
-            ['code' => 'CAT-TH'],
-            ['name' => 'Thiết bị Y tế tổng hợp', 'description' => 'Danh mục mặc định']
-        );
-
-        $defaultMfg = Manufacturer::firstOrCreate(
-            ['code' => 'MFG-UNKNOWN'],
-            ['name' => 'Chưa xác định', 'country' => 'Chưa rõ']
-        );
-
-        $defaultModel = EquipmentModel::firstOrCreate(
-            ['code' => 'MOD-UNKNOWN'],
-            [
-                'name' => 'Model chưa xác định',
-                'category_id' => $defaultCat->id,
-                'manufacturer_id' => $defaultMfg->id,
-                'specs' => 'Model mặc định cho dữ liệu chưa phân loại',
-            ]
-        );
-
         $parsedRows = [];
         $totalUnits = 0;
         $qtyGt1Count = 0;
@@ -259,10 +235,34 @@ class ImportPl2EquipmentCommand extends Command
 
         // THỰC HIỆN GHI CSDL KHI CÓ OPTION --commit
         if ($isCommit) {
+            $department = Department::where('code', 'CHUA-PHAN-KHOA')->first()
+                ?? Department::create(['code' => 'CHUA-PHAN-KHOA', 'name' => 'Chưa phân khoa', 'short_name' => 'Chưa phân khoa']);
+
+            // Master Data mặc định
+            $defaultCat = EquipmentCategory::firstOrCreate(
+                ['code' => 'CAT-TH'],
+                ['name' => 'Thiết bị Y tế tổng hợp', 'description' => 'Danh mục mặc định']
+            );
+
+            $defaultMfg = Manufacturer::firstOrCreate(
+                ['code' => 'MFG-UNKNOWN'],
+                ['name' => 'Chưa xác định', 'country' => 'Chưa rõ']
+            );
+
+            $defaultModel = EquipmentModel::firstOrCreate(
+                ['code' => 'MOD-UNKNOWN'],
+                [
+                    'name' => 'Model chưa xác định',
+                    'category_id' => $defaultCat->id,
+                    'manufacturer_id' => $defaultMfg->id,
+                    'specs' => 'Model mặc định cho dữ liệu chưa phân loại',
+                ]
+            );
+
             $adminUser = auth()->user() ?? User::first() ?? User::create([
                 'name' => 'System Importer',
                 'email' => 'system-importer@mems.local',
-                'password' => bcrypt('password'),
+                'password' => bcrypt(Str::random(32)),
                 'status' => 'active',
             ]);
             $batch = ImportBatch::create([
@@ -317,9 +317,27 @@ class ImportPl2EquipmentCommand extends Command
                     $eqCode = sprintf('TB-%03d-%02d', $row['stt'], $i);
                     $sourceRef = "PL2#{$row['stt']}";
 
-                    $equipment = Equipment::updateOrCreate(
-                        ['code' => $eqCode],
-                        [
+                    $existing = Equipment::where('code', $eqCode)->first();
+                    if ($existing) {
+                        // Cập nhật nhưng GIỮ: khoa, tình trạng, trạng thái, serial
+                        $existing->update([
+                            'name' => $row['name'],
+                            'equipment_model_id' => $modelId,
+                            'category_id' => $catId,
+                            'manufacturer_id' => $mfgId,
+                            'manufacture_year' => $row['year'],
+                            'origin_country' => $row['country'],
+                            'ownership_type' => $row['ownership_type'],
+                            'origin_model_text' => $row['col_e'],
+                            'source_ref' => $sourceRef,
+                            'import_batch_id' => $batch->id,
+                            'note' => "ĐVT: {$row['unit']} | Nhập từ Phụ lục 2 (Dòng {$row['stt']})",
+                        ]);
+                        $equipment = $existing;
+                    } else {
+                        // Chỉ tạo mới khi chưa có
+                        $equipment = Equipment::create([
+                            'code' => $eqCode,
                             'name' => $row['name'],
                             'equipment_model_id' => $modelId,
                             'category_id' => $catId,
@@ -336,8 +354,8 @@ class ImportPl2EquipmentCommand extends Command
                             'source_ref' => $sourceRef,
                             'import_batch_id' => $batch->id,
                             'note' => "ĐVT: {$row['unit']} | Nhập từ Phụ lục 2 (Dòng {$row['stt']})",
-                        ]
-                    );
+                        ]);
+                    }
 
                     // Tạo/Cập nhật 8 bản ghi equipment_documents cho từng thiết bị
                     $docMap = [
@@ -352,15 +370,23 @@ class ImportPl2EquipmentCommand extends Command
                     ];
 
                     foreach ($docMap as $docTypeVal => $statusEnum) {
-                        EquipmentDocument::updateOrCreate(
-                            [
+                        $existingDoc = EquipmentDocument::where('equipment_id', $equipment->id)
+                            ->where('document_type', $docTypeVal)
+                            ->first();
+
+                        if ($existingDoc) {
+                            // Giữ các trạng thái hồ sơ đã rà soát (co, khong, khong_ap_dung).
+                            // Chỉ cập nhật nếu trạng thái hiện tại là chưa rà soát.
+                            if ($existingDoc->status === DocumentStatusEnum::CHUA_RA_SOAT || $existingDoc->status?->value === 'chua_ra_soat') {
+                                $existingDoc->update(['status' => $statusEnum->value]);
+                            }
+                        } else {
+                            EquipmentDocument::create([
                                 'equipment_id' => $equipment->id,
                                 'document_type' => $docTypeVal,
-                            ],
-                            [
                                 'status' => $statusEnum->value,
-                            ]
-                        );
+                            ]);
+                        }
                     }
                 }
             }
@@ -500,16 +526,22 @@ class ImportPl2EquipmentCommand extends Command
         }
 
         $clean = mb_strtolower(trim($val));
-        if (str_contains($clean, 'có') || $clean === 'x' || $clean === '✓' || $clean === 'co') {
-            return DocumentStatusEnum::CO;
-        }
 
+        // Xét "không áp dụng", "không", "chưa" TRƯỚC "có"
         if (str_contains($clean, 'không áp dụng') || str_contains($clean, 'khong ap dung')) {
             return DocumentStatusEnum::KHONG_AP_DUNG;
         }
 
+        if (str_contains($clean, 'chưa') || str_contains($clean, 'chua')) {
+            return DocumentStatusEnum::CHUA_RA_SOAT;
+        }
+
         if (str_contains($clean, 'không') || str_contains($clean, 'khong')) {
             return DocumentStatusEnum::KHONG;
+        }
+
+        if (str_contains($clean, 'có') || $clean === 'x' || $clean === '✓' || $clean === 'co') {
+            return DocumentStatusEnum::CO;
         }
 
         return DocumentStatusEnum::CHUA_RA_SOAT;

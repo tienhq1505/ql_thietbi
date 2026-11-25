@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\DocumentStatusEnum;
 use App\Enums\DocumentTypeEnum;
 use App\Enums\OwnershipTypeEnum;
+use App\Exports\EquipmentExport;
 use App\Livewire\Equipment\EquipmentIndex;
 use App\Models\Department;
 use App\Models\Equipment;
@@ -17,6 +18,7 @@ use Database\Seeders\DepartmentSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Maatwebsite\Excel\Excel;
 use Tests\TestCase;
 
 class EquipmentIndexFiltersTest extends TestCase
@@ -105,5 +107,40 @@ class EquipmentIndexFiltersTest extends TestCase
             ->set('ownership_type', OwnershipTypeEnum::MAY_DAT->value)
             ->assertSee('TB-FIL-02')
             ->assertDontSee('TB-FIL-01');
+    }
+
+    public function test_export_excel_and_csv_from_equipment_index_escapes_formula_injection(): void
+    {
+        $admin = User::factory()->create(['status' => 'active']);
+        $admin->assignRole('admin');
+
+        $eq = Equipment::create([
+            'code' => '=1+1',
+            'name' => '+2+2',
+            'note' => '-3+3',
+            'serial_number' => '@4+4',
+            'serial_pending' => false,
+            'equipment_model_id' => $this->model->id,
+            'category_id' => $this->category->id,
+            'manufacturer_id' => $this->manufacturer->id,
+            'department_id' => $this->dept->id,
+            'ownership_type' => OwnershipTypeEnum::MUA_SAM,
+        ]);
+
+        $component = Livewire::actingAs($admin)->test(EquipmentIndex::class);
+
+        // Gọi exportExcel và exportCsv từ EquipmentIndex trả về file download
+        $excelResponse = $component->call('exportExcel');
+        $this->assertNotNull($excelResponse);
+
+        $csvResponse = $component->call('exportCsv');
+        $this->assertNotNull($csvResponse);
+
+        // Kiểm tra dữ liệu xuất thô: ô '=1+1' không còn là công thức (được thoát dấu nháy đơn)
+        $rawCsv = \Maatwebsite\Excel\Facades\Excel::raw(new EquipmentExport(Equipment::where('id', $eq->id)), Excel::CSV);
+        $this->assertStringContainsString("'=1+1", $rawCsv);
+        $this->assertStringContainsString("'+2+2", $rawCsv);
+        $this->assertStringContainsString("'-3+3", $rawCsv);
+        $this->assertStringContainsString("'@4+4", $rawCsv);
     }
 }

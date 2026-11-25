@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\EquipmentConditionEnum;
+use App\Livewire\Equipment\EquipmentEdit;
 use App\Livewire\Equipment\EquipmentShow;
 use App\Models\Department;
 use App\Models\Equipment;
@@ -163,5 +164,62 @@ class EquipmentCrudTest extends TestCase
             ->test(EquipmentShow::class, ['id' => $equipment->id])
             ->assertSee('Cập nhật Tình trạng Kỹ thuật')
             ->assertSee('wire:submit="updateCondition"', false);
+    }
+
+    public function test_equipment_edit_page_loads_200_and_can_save_without_changes(): void
+    {
+        $admin = User::where('email', 'admin@mems.local')->firstOrFail();
+        $equipment = Equipment::firstOrFail();
+
+        // Trang sửa trả về 200 (không 500)
+        $response = $this->actingAs($admin)->get('/equipment/'.$equipment->id.'/edit');
+        $response->assertStatus(200);
+
+        // Lưu không đổi gì thành công, redirect về show
+        Livewire::actingAs($admin)
+            ->test(EquipmentEdit::class, ['id' => $equipment->id])
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('equipment.show', $equipment->id));
+    }
+
+    public function test_equipment_edit_fails_when_code_already_taken_by_another_equipment(): void
+    {
+        $admin = User::where('email', 'admin@mems.local')->firstOrFail();
+        $eq1 = Equipment::firstOrFail();
+        $eq2 = Equipment::where('id', '!=', $eq1->id)->firstOrFail();
+
+        // Đổi sang mã đã có của máy khác thì báo lỗi validation
+        Livewire::actingAs($admin)
+            ->test(EquipmentEdit::class, ['id' => $eq1->id])
+            ->set('code', $eq2->code)
+            ->call('save')
+            ->assertHasErrors(['code']);
+    }
+
+    public function test_equipment_edit_records_department_history_when_department_changes(): void
+    {
+        $admin = User::where('email', 'admin@mems.local')->firstOrFail();
+        $equipment = Equipment::firstOrFail();
+        $oldDeptId = $equipment->department_id;
+        $newDept = Department::where('id', '!=', $oldDeptId)->firstOrFail();
+
+        Livewire::actingAs($admin)
+            ->test(EquipmentEdit::class, ['id' => $equipment->id])
+            ->set('department_id', $newDept->id)
+            ->set('location_id', '')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('equipment.show', $equipment->id));
+
+        $equipment->refresh();
+        $this->assertEquals($newDept->id, $equipment->department_id);
+
+        $this->assertDatabaseHas('equipment_department_histories', [
+            'equipment_id' => $equipment->id,
+            'from_department_id' => $oldDeptId,
+            'to_department_id' => $newDept->id,
+            'assigned_by' => $admin->id,
+        ]);
     }
 }

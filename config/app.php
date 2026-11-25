@@ -15,6 +15,8 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    'hospital_name' => env('APP_HOSPITAL_NAME', 'Bệnh viện'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

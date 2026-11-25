@@ -21,7 +21,7 @@ class LocationRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('locations', 'code')->ignore($id)->whereNull('deleted_at'),
+                Rule::unique('locations', 'code')->ignore($id),
             ],
             'name' => ['required', 'string', 'max:255'],
             'department_id' => ['required', 'exists:departments,id'],
@@ -35,7 +35,7 @@ class LocationRequest extends FormRequest
     {
         return [
             'code.required' => 'Mã vị trí không được để trống.',
-            'code.unique' => 'Mã vị trí đã tồn tại.',
+            'code.unique' => 'Mã vị trí đã tồn tại trong hệ thống (kể cả bản ghi đã xóa).',
             'name.required' => 'Tên vị trí không được để trống.',
             'department_id.required' => 'Vui lòng chọn Khoa / Phòng quản lý vị trí.',
         ];

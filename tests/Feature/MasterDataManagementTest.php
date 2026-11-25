@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\MasterDataIndex;
+use App\Models\Department;
 use App\Models\EquipmentCategory;
 use App\Models\EquipmentModel;
 use App\Models\Manufacturer;
@@ -87,5 +88,58 @@ class MasterDataManagementTest extends TestCase
 
         // Check category is NOT soft-deleted
         $this->assertNull($cat->fresh()->deleted_at);
+    }
+
+    public function test_cannot_create_category_with_code_of_soft_deleted_record(): void
+    {
+        $admin = User::factory()->create(['status' => 'active']);
+        $admin->assignRole('admin');
+
+        $cat = EquipmentCategory::create(['code' => 'CAT-TO-DELETE', 'name' => 'Loại sắp xóa']);
+        $cat->delete();
+        $this->assertSoftDeleted('equipment_categories', ['id' => $cat->id]);
+
+        // Tạo lại với cùng mã phải bị chặn bởi validate, không throw 500
+        Livewire::actingAs($admin)
+            ->test(MasterDataIndex::class)
+            ->set('activeTab', 'categories')
+            ->set('code', 'CAT-TO-DELETE')
+            ->set('name', 'Loại mới trùng mã đã xóa')
+            ->call('save')
+            ->assertHasErrors(['code']);
+    }
+
+    public function test_cannot_edit_or_delete_chua_phan_khoa_department(): void
+    {
+        $admin = User::factory()->create(['status' => 'active']);
+        $admin->assignRole('admin');
+
+        $dept = Department::where('code', 'CHUA-PHAN-KHOA')->firstOrFail();
+
+        // Chặn mở sửa
+        Livewire::actingAs($admin)
+            ->test(MasterDataIndex::class)
+            ->set('activeTab', 'departments')
+            ->call('openEditModal', $dept->id)
+            ->assertSee('Không thể sửa khoa Chưa phân khoa hệ thống');
+
+        // Chặn xóa
+        Livewire::actingAs($admin)
+            ->test(MasterDataIndex::class)
+            ->set('activeTab', 'departments')
+            ->call('delete', $dept->id)
+            ->assertSee('Không thể xóa khoa Chưa phân khoa hệ thống');
+
+        $this->assertNull($dept->fresh()->deleted_at);
+
+        // Chặn lưu sửa
+        Livewire::actingAs($admin)
+            ->test(MasterDataIndex::class)
+            ->set('activeTab', 'departments')
+            ->set('editingId', $dept->id)
+            ->set('code', 'CHUA-PHAN-KHOA')
+            ->set('name', 'Đổi tên')
+            ->call('save')
+            ->assertSee('Không thể chỉnh sửa khoa Chưa phân khoa hệ thống');
     }
 }

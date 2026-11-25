@@ -15,6 +15,7 @@ use App\Models\Location;
 use App\Models\Manufacturer;
 use App\Models\Supplier;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -141,6 +142,11 @@ class MasterDataIndex extends Component
                 break;
             case 'departments':
                 $dept = Department::findOrFail($id);
+                if ($dept->code === 'CHUA-PHAN-KHOA') {
+                    session()->flash('error', 'Không thể sửa khoa Chưa phân khoa hệ thống.');
+
+                    return;
+                }
                 $this->code = $dept->code;
                 $this->name = $dept->name;
                 $this->short_name = $dept->short_name ?? '';
@@ -163,7 +169,7 @@ class MasterDataIndex extends Component
                 $req = new CategoryRequest;
                 $rules = $req->rules();
                 if ($this->editingId) {
-                    $rules['code'][3] = 'unique:equipment_categories,code,'.$this->editingId.',id,deleted_at,NULL';
+                    $rules['code'][3] = Rule::unique('equipment_categories', 'code')->ignore($this->editingId);
                 }
                 $validated = $this->validate($rules, $req->messages());
 
@@ -175,7 +181,7 @@ class MasterDataIndex extends Component
                 $req = new ManufacturerRequest;
                 $rules = $req->rules();
                 if ($this->editingId) {
-                    $rules['code'][3] = 'unique:manufacturers,code,'.$this->editingId.',id,deleted_at,NULL';
+                    $rules['code'][3] = Rule::unique('manufacturers', 'code')->ignore($this->editingId);
                 }
                 $validated = $this->validate($rules, $req->messages());
 
@@ -187,7 +193,7 @@ class MasterDataIndex extends Component
                 $req = new EquipmentModelRequest;
                 $rules = $req->rules();
                 if ($this->editingId) {
-                    $rules['code'][3] = 'unique:equipment_models,code,'.$this->editingId.',id,deleted_at,NULL';
+                    $rules['code'][3] = Rule::unique('equipment_models', 'code')->ignore($this->editingId);
                 }
                 $validated = $this->validate($rules, $req->messages());
 
@@ -199,7 +205,7 @@ class MasterDataIndex extends Component
                 $req = new SupplierRequest;
                 $rules = $req->rules();
                 if ($this->editingId) {
-                    $rules['code'][3] = 'unique:suppliers,code,'.$this->editingId.',id,deleted_at,NULL';
+                    $rules['code'][3] = Rule::unique('suppliers', 'code')->ignore($this->editingId);
                 }
                 $validated = $this->validate($rules, $req->messages());
 
@@ -211,7 +217,7 @@ class MasterDataIndex extends Component
                 $req = new LocationRequest;
                 $rules = $req->rules();
                 if ($this->editingId) {
-                    $rules['code'][3] = 'unique:locations,code,'.$this->editingId.',id,deleted_at,NULL';
+                    $rules['code'][3] = Rule::unique('locations', 'code')->ignore($this->editingId);
                 }
                 $validated = $this->validate($rules, $req->messages());
 
@@ -220,10 +226,19 @@ class MasterDataIndex extends Component
                 break;
 
             case 'departments':
+                if ($this->editingId) {
+                    $existingDept = Department::find($this->editingId);
+                    if ($existingDept && $existingDept->code === 'CHUA-PHAN-KHOA') {
+                        session()->flash('error', 'Không thể chỉnh sửa khoa Chưa phân khoa hệ thống.');
+                        $this->resetForm();
+
+                        return;
+                    }
+                }
                 $req = new DepartmentRequest;
                 $rules = $req->rules();
                 if ($this->editingId) {
-                    $rules['code'][3] = 'unique:departments,code,'.$this->editingId.',id,deleted_at,NULL';
+                    $rules['code'][3] = Rule::unique('departments', 'code')->ignore($this->editingId);
                 }
                 $validated = $this->validate($rules, $req->messages());
 
@@ -299,6 +314,11 @@ class MasterDataIndex extends Component
 
             case 'departments':
                 $dept = Department::findOrFail($id);
+                if ($dept->code === 'CHUA-PHAN-KHOA') {
+                    session()->flash('error', 'Không thể xóa khoa Chưa phân khoa hệ thống!');
+
+                    return;
+                }
                 if ($dept->equipment()->count() > 0 || $dept->users()->count() > 0 || $dept->locations()->count() > 0) {
                     session()->flash('error', 'Không thể xóa khoa/phòng này vì còn thiết bị, vị trí hoặc người dùng thuộc khoa!');
 

@@ -21,7 +21,7 @@ class ManufacturerRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('manufacturers', 'code')->ignore($id)->whereNull('deleted_at'),
+                Rule::unique('manufacturers', 'code')->ignore($id),
             ],
             'name' => ['required', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:100'],
@@ -33,7 +33,7 @@ class ManufacturerRequest extends FormRequest
     {
         return [
             'code.required' => 'Mã hãng sản xuất không được để trống.',
-            'code.unique' => 'Mã hãng sản xuất đã tồn tại.',
+            'code.unique' => 'Mã hãng sản xuất đã tồn tại trong hệ thống (kể cả bản ghi đã xóa).',
             'name.required' => 'Tên hãng sản xuất không được để trống.',
         ];
     }

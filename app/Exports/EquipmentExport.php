@@ -19,9 +19,22 @@ class EquipmentExport implements FromQuery, WithColumnFormatting, WithCustomCsvS
         $this->query = $query;
     }
 
-    public function query()
+    public function query(): Builder
     {
         return $this->query;
+    }
+
+    public static function escapeFormula(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        if ($value !== '' && in_array($value[0], ['=', '+', '-', '@'], true)) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 
     public function headings(): array
@@ -55,7 +68,7 @@ class EquipmentExport implements FromQuery, WithColumnFormatting, WithCustomCsvS
     public function map($item): array
     {
         /** @var Equipment $item */
-        return [
+        $row = [
             $item->code,
             $item->name,
             $item->equipmentModel?->code ?? '',
@@ -79,6 +92,8 @@ class EquipmentExport implements FromQuery, WithColumnFormatting, WithCustomCsvS
             $item->condition?->label() ?? $item->condition ?? '',
             $item->note ?? '',
         ];
+
+        return array_map([self::class, 'escapeFormula'], $row);
     }
 
     public function columnFormats(): array

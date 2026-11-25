@@ -21,7 +21,7 @@ class DepartmentRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('departments', 'code')->ignore($id)->whereNull('deleted_at'),
+                Rule::unique('departments', 'code')->ignore($id),
             ],
             'name' => ['required', 'string', 'max:255'],
             'short_name' => ['nullable', 'string', 'max:100'],
@@ -34,7 +34,7 @@ class DepartmentRequest extends FormRequest
     {
         return [
             'code.required' => 'Mã khoa/phòng không được để trống.',
-            'code.unique' => 'Mã khoa/phòng đã tồn tại.',
+            'code.unique' => 'Mã khoa/phòng đã tồn tại trong hệ thống (kể cả bản ghi đã xóa).',
             'name.required' => 'Tên khoa/phòng không được để trống.',
         ];
     }

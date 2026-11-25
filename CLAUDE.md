@@ -1,3 +1,52 @@
+<!-- MEMS PROJECT CONTEXT FOR CLAUDE -->
+# BỐI CẢNH DỰ ÁN MEMS (CHO CLAUDE)
+Xem chi tiết toàn bộ nghiệp vụ, phân quyền, schema và tiến độ tại: [PROJECT_CONTEXT_FOR_CLAUDE.md](PROJECT_CONTEXT_FOR_CLAUDE.md)
+
+### Lệnh chạy kiểm tra bắt buộc trên máy local (Windows):
+- **PHP Path**: `C:\php8\php.exe`
+- **Composer Path**: `C:\php8\composer.bat`
+- **Chạy toàn bộ Test**: `C:\php8\php.exe vendor/phpunit/phpunit/phpunit` (hiện tại PASS 100% 196/196 tests)
+- **Chạy Migrate & Seed**: `C:\php8\php.exe artisan migrate:fresh --seed`
+- **Chạy Server**: `C:\php8\php.exe artisan serve`
+
+### Quy tắc bất di bất dịch:
+1. Mọi thay đổi cấu trúc bảng phải tạo **migration mới**, không sửa migration cũ.
+2. Tuyệt đối không đưa thông tin cá nhân từ `data-real/` vào seeder, test, log hay code.
+3. Sau khi code, luôn chạy `phpunit` để đảm bảo 100% pass thật trước khi báo cáo hoàn thành.
+
+### QUY TẮC BẮT BUỘC cho mọi thay đổi:
+- Đọc CLAUDE.md/AGENTS.md và tuân thủ convention hiện có. Không thêm package mới, không đổi kiến trúc thư mục nếu chưa hỏi.
+- Mọi thay đổi schema phải là MIGRATION MỚI (không sửa migration cũ đã chạy).
+- Sau mỗi bước: chạy `C:\php8\php.exe artisan migrate:fresh --seed` và `C:\php8\php.exe artisan test`, báo kết quả THẬT (pass/fail), không suy đoán.
+- Viết/cập nhật test cho mọi logic mới.
+- Dữ liệu thật nằm trong `data-real/` (đã gitignore). KHÔNG chép tên người, số điện thoại từ file thật vào seeder, test, log hay commit.
+- Cuối mỗi bước: liệt kê file đã tạo/sửa và cách chạy thử.
+
+### Tiến độ & Route mới nhất (Hoàn thành gói sửa lỗi & tối ưu Items A–I):
+- **Kiểm thử**: PASS 100% 196/196 tests (882 assertions).
+- **Gói sửa lỗi & tối ưu A–I hoàn thành**:
+  - **A**: `/equipment/{id}/edit` khắc phục 500 do `$conditions`, validation dùng `Rule::unique` ignore id cho `code` và `serial_number`, loại bỏ `setRouteResolver`.
+  - **B**: `EquipmentExport::query(): Builder`, chặn formula injection chuỗi bắt đầu bằng `=`, `+`, `-`, `@` (thoát bằng `'`) cho cả xlsx và csv trên `EquipmentExport`, `DocumentReportExport`, `InventoryDiscrepancyExport`.
+  - **C**: `ImportPl2EquipmentCommand`: không dùng `updateOrCreate` ghi đè (giữ khoa, tình trạng, trạng thái, serial, hồ sơ đã rà soát); `parseDocStatus` xét "không áp dụng", "không", "chưa" trước "có"; dry-run không ghi CSDL; mật khẩu ngẫu nhiên cho `system-importer`.
+  - **D**: `EquipmentImport`: bọc ghi trong `DB::transaction` (lỗi chuyển batch thành `failed`), kiểm tra lại cả mã lẫn serial trùng lúc xác nhận, chặt chẽ ngày tháng (31/02/2025 báo lỗi).
+  - **E**: Validate kiểm tra cả bản ghi đã xóa mềm cho Danh mục/Hãng/Model/Khoa/Vị trí/NCC và email User, báo lỗi thân thiện thay vì 500.
+  - **F**: Ghi audit log khi admin reset mật khẩu (không lưu mật khẩu); đổi khoa ở `EquipmentEdit` ghi `EquipmentDepartmentHistory`.
+  - **G**: `APP_LOCALE=vi` và `APP_FALLBACK_LOCALE=vi` trong `.env` và `.env.example`, thông báo validate tiếng Việt chuẩn.
+  - **H**: Chặn sửa/xóa khoa `CHUA-PHAN-KHOA` trong `MasterDataIndex`; `EquipmentShow::saveDocument` validate `editingDocType` theo `DocumentTypeEnum` tránh `ValueError`.
+  - **I**: Smoke test toàn diện `SmokeTest.php`: mọi route cho 5 vai trò không trả về 500.
+- **Module 6d hoàn thành**: Quét QR bằng camera điện thoại mở thẳng thẻ thông tin máy (`/q/{code}`). Layout riêng cho di động (`components.layouts.mobile`) tinh gọn, không có sidebar `<aside>`, thẻ thiết bị đặt ngay đầu trang; route `/q/{code}` khai báo duy nhất; nhãn in QR bổ sung dòng chữ ngắn `/q/{code}` cỡ nhỏ không tràn nhãn. Bắt buộc đăng nhập mới xem được thông tin (redirect intended), phân quyền xem theo khoa/BGĐ (EquipmentPolicy::view), thẻ máy tối ưu di động chữ lớn không hiển thị giá mua và nguồn kinh phí, nút "Đổi tình trạng" to dễ bấm cho người có quyền updateCondition (sử dụng EquipmentConditionService ghi lịch sử), nhãn QR chứa đường dẫn URL đầy đủ kích thước ≥25mm, màn quét kiểm kê (`InventoryShow` + `app.js`) nhận diện song song cả đường dẫn URL lẫn mã thô cũ, ô ghi nhớ đăng nhập được chọn sẵn mặc định và hỗ trợ cấu hình `SESSION_LIFETIME`.
+- **Module 8b (Sửa Module Quản lý Người dùng) hoàn thành**: Kiểm tra `$user->can('users.manage')` ở đầu từng hành động (createUser, updateUser, resetPassword, toggleStatus, deleteUser, openEditModal, openResetModal); Ghi Audit Log tường minh khi tạo user (kèm role + khoa), đổi vai trò (cũ → mới), đổi khoa; `isLastAdmin` chỉ coi admin cuối cùng khi đối tượng là admin đang hoạt động (status active) và là admin hoạt động duy nhất.
+- **Module Người dùng & Đổi mật khẩu hoàn thành**: Quản lý tài khoản toàn diện `/users` (tìm kiếm, lọc vai trò/khoa/trạng thái, phân 5 vai trò, using_dept bắt buộc gán khoa, khóa/mở khóa vô hiệu phiên hiện tại, đặt lại mật khẩu, xóa mềm bảo toàn audit log, chặn tự hại & bảo vệ admin cuối cùng) và `/profile/password` (đổi mật khẩu cá nhân cho mọi user đã đăng nhập).
+- **Module 6c hoàn thành**: Báo cáo đối soát kiểm kê, Xuất biên bản kiểm kê PDF (dompdf, font DejaVu Sans tiếng Việt), Xuất Excel chênh lệch (maatwebsite/excel), Service dùng chung `InventoryReportService`. Tên bệnh viện trong PDF đọc từ `config('app.hospital_name')` (`APP_HOSPITAL_NAME`).
+- **Các route mới**:
+  1. `GET /q/{code}` (`equipment.scan`) - Quét QR mở thẻ thiết bị di động (yêu cầu `auth`)
+  2. `GET /users` (`users.index`) - Quản lý người dùng (quyền `users.manage`, chỉ admin)
+  3. `GET /profile/password` (`profile.password`) - Đổi mật khẩu cá nhân
+  4. `GET /inventory/{session}/report` (`inventory.report`) - Báo cáo đối soát & tiến độ
+  5. `GET /inventory/{session}/export-pdf` (`inventory.export-pdf`) - Xuất biên bản PDF
+  6. `GET /inventory/{session}/export-excel` (`inventory.export-excel`) - Xuất Excel chênh lệch
+---
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

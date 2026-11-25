@@ -21,7 +21,7 @@ class EquipmentModelRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('equipment_models', 'code')->ignore($id)->whereNull('deleted_at'),
+                Rule::unique('equipment_models', 'code')->ignore($id),
             ],
             'name' => ['required', 'string', 'max:255'],
             'category_id' => ['required', 'exists:equipment_categories,id'],
@@ -34,7 +34,7 @@ class EquipmentModelRequest extends FormRequest
     {
         return [
             'code.required' => 'Mã Model không được để trống.',
-            'code.unique' => 'Mã Model đã tồn tại.',
+            'code.unique' => 'Mã Model đã tồn tại trong hệ thống (kể cả bản ghi đã xóa).',
             'name.required' => 'Tên Model không được để trống.',
             'category_id.required' => 'Vui lòng chọn loại thiết bị.',
             'manufacturer_id.required' => 'Vui lòng chọn hãng sản xuất.',

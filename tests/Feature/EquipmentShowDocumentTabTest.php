@@ -82,4 +82,17 @@ class EquipmentShowDocumentTabTest extends TestCase
             'note' => 'Đã bổ sung lý lịch',
         ]);
     }
+
+    public function test_save_document_with_invalid_doc_type_fails_validation_without_throwing_value_error(): void
+    {
+        $admin = User::factory()->create(['status' => 'active']);
+        $admin->assignRole('admin');
+
+        Livewire::actingAs($admin)
+            ->test(EquipmentShow::class, ['id' => $this->equipment->id])
+            ->set('editingDocType', 'invalid_doc_type_value')
+            ->set('docStatus', DocumentStatusEnum::CO->value)
+            ->call('saveDocument')
+            ->assertHasErrors(['editingDocType']);
+    }
 }

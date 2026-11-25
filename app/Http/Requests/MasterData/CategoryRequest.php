@@ -21,7 +21,7 @@ class CategoryRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('equipment_categories', 'code')->ignore($id)->whereNull('deleted_at'),
+                Rule::unique('equipment_categories', 'code')->ignore($id),
             ],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
@@ -32,7 +32,7 @@ class CategoryRequest extends FormRequest
     {
         return [
             'code.required' => 'Mã loại thiết bị không được để trống.',
-            'code.unique' => 'Mã loại thiết bị đã tồn tại trong hệ thống.',
+            'code.unique' => 'Mã loại thiết bị đã tồn tại trong hệ thống (kể cả bản ghi đã xóa).',
             'name.required' => 'Tên loại thiết bị không được để trống.',
         ];
     }

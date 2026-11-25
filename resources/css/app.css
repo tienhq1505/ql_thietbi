@@ -54,6 +54,261 @@
     --his-info: #01579b;
 }
 
+/* =============================================
+   HOSPITAL WHITE & MEDICAL BLUE THEME (MEMS)
+   Tông màu Trắng & Xanh Y Tế thân thiện, sáng sủa
+   ============================================= */
+html {
+    background-color: #f1f5f9;
+}
+
+body {
+    background-color: #f1f5f9 !important;
+    color: #1e293b !important;
+}
+
+/* Card, Panel, Modal: Nền trắng sạch sẽ chuẩn bệnh viện */
+.bg-slate-950,
+.bg-slate-900,
+.bg-slate-900\/90,
+.bg-slate-900\/80,
+.bg-slate-900\/60,
+.bg-slate-800,
+.bg-slate-800\/90,
+.bg-slate-800\/80,
+.bg-slate-800\/70,
+.bg-slate-800\/60 {
+    background-color: #ffffff !important;
+}
+
+/* Form inputs & controls: Nền trắng, viền rõ nét, chữ than đậm */
+input.bg-slate-950,
+select.bg-slate-950,
+textarea.bg-slate-950,
+input.bg-slate-900,
+select.bg-slate-900,
+textarea.bg-slate-900,
+input.bg-slate-900\/80,
+select.bg-slate-900\/80,
+input.bg-slate-900\/60,
+select.bg-slate-900\/60 {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+input.bg-slate-950:focus,
+select.bg-slate-950:focus,
+textarea.bg-slate-950:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #0284c7 !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+    outline: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* Borders: Viền sáng trang nhã thay cho viền đen tối */
+.border-slate-800,
+.border-slate-800\/80,
+.border-slate-700,
+.border-slate-700\/60,
+.border-slate-700\/50,
+.border-slate-700\/40,
+.border-slate-700\/30 {
+    border-color: #e2e8f0 !important;
+}
+
+/* Soft hospital shadows */
+.shadow-xl,
+.shadow-2xl {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Text Hierarchy */
+.text-white {
+    color: #0f172a !important;
+}
+
+.text-slate-100,
+.text-slate-200,
+.text-slate-300 {
+    color: #1e293b !important;
+}
+
+.text-slate-400 {
+    color: #475569 !important;
+}
+
+.text-slate-500 {
+    color: #64748b !important;
+}
+
+/* Table: Header xanh nhạt y tế dịu mắt, hover dòng xám sáng */
+table thead,
+thead.bg-slate-950,
+thead.bg-slate-950\/80,
+thead.bg-slate-900,
+thead.bg-slate-900\/80 {
+    background-color: #f0f7ff !important;
+    border-bottom: 2px solid #bae6fd !important;
+}
+
+table thead th,
+thead tr th {
+    color: #0369a1 !important;
+    font-weight: 700 !important;
+}
+
+table tbody tr {
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+table tbody tr:hover {
+    background-color: #f8fafc !important;
+}
+
+/* Medical Blue Badges & Accent Buttons */
+.bg-cyan-500\/10,
+.bg-cyan-500\/20,
+.bg-blue-500\/10,
+.bg-blue-500\/20 {
+    background-color: #e0f2fe !important;
+    color: #0369a1 !important;
+    border-color: #bae6fd !important;
+}
+
+.text-cyan-400,
+.text-cyan-300,
+.text-blue-400 {
+    color: #0284c7 !important;
+}
+
+.bg-cyan-500,
+.bg-blue-600 {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+}
+
+.bg-cyan-500:hover,
+.bg-blue-600:hover {
+    background-color: #0369a1 !important;
+}
+
+/* Green Status / Active */
+.bg-emerald-500\/10,
+.bg-emerald-500\/20 {
+    background-color: #ecfdf5 !important;
+    color: #047857 !important;
+    border-color: #a7f3d0 !important;
+}
+
+.text-emerald-400,
+.text-emerald-300 {
+    color: #059669 !important;
+}
+
+/* Amber Status / Warning */
+.bg-amber-500\/10,
+.bg-amber-500\/20 {
+    background-color: #fffbeb !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+}
+
+.text-amber-400,
+.text-amber-300 {
+    color: #d97706 !important;
+}
+
+/* Rose Status / Danger */
+.bg-rose-500\/10,
+.bg-rose-500\/20 {
+    background-color: #fff1f2 !important;
+    color: #be123c !important;
+    border-color: #fecdd3 !important;
+}
+
+.text-rose-400,
+.text-rose-300 {
+    color: #e11d48 !important;
+}
+
+/* Sidebar Bệnh Viện: Màu Xanh Navy Y Tế Chuyên Nghiệp */
+aside {
+    background-color: #1e3a8a !important; /* Medical Navy Blue */
+    border-right: 1px solid #1d4ed8 !important;
+}
+
+aside .text-white,
+aside h1,
+aside p.text-white {
+    color: #ffffff !important;
+}
+
+aside .text-slate-400 {
+    color: #bfdbfe !important;
+}
+
+aside nav a {
+    color: #dbeafe !important;
+}
+
+aside nav a:hover {
+    background-color: #1d4ed8 !important;
+    color: #ffffff !important;
+}
+
+aside nav a.active,
+aside nav a[class*="bg-cyan-500"],
+aside nav a[class*="border-cyan-500"] {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #60a5fa !important;
+}
+
+aside nav a[class*="bg-cyan-500"] svg,
+aside nav a.active svg {
+    color: #ffffff !important;
+}
+
+aside .bg-slate-800\/60,
+aside .bg-slate-800 {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+aside .border-slate-800 {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+aside .text-cyan-400 {
+    color: #93c5fd !important;
+}
+
+aside button[type="submit"] {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    color: #fca5a5 !important;
+}
+
+aside button[type="submit"]:hover {
+    background-color: rgba(239, 68, 68, 0.3) !important;
+    color: #ffffff !important;
+}
+
+/* Khung Camera Quét QR */
+#qr-reader {
+    background-color: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #64748b !important;
+}
+
 /* ---- Reset & Base ---- */
 *,
 *::before,

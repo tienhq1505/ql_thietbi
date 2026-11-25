@@ -9,6 +9,7 @@ use App\Services\EquipmentImportValidator;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -164,14 +165,29 @@ class EquipmentImport extends Component
         }
 
         // Re-validate từng dòng sẽ import (đảm bảo dữ liệu vẫn hợp lệ tại thời điểm commit)
-        $codesInBatch = array_map(fn ($r) => $r['data']['code'] ?? '', $validToImport);
+        $codesInBatch = array_filter(array_map(fn ($r) => $r['data']['code'] ?? null, $validToImport));
         $conflictCodes = Equipment::withTrashed()
             ->whereIn('code', $codesInBatch)
             ->pluck('code')
             ->all();
 
-        if (! empty($conflictCodes)) {
-            session()->flash('error', 'Một số mã thiết bị đã bị trùng trong lúc chờ xác nhận: '.implode(', ', $conflictCodes).'. Vui lòng tải lại file.');
+        $serialsInBatch = array_filter(array_map(fn ($r) => $r['data']['serial_number'] ?? null, $validToImport));
+        $conflictSerials = ! empty($serialsInBatch)
+            ? Equipment::withTrashed()
+                ->whereIn('serial_number', $serialsInBatch)
+                ->pluck('serial_number')
+                ->all()
+            : [];
+
+        if (! empty($conflictCodes) || ! empty($conflictSerials)) {
+            $msg = [];
+            if (! empty($conflictCodes)) {
+                $msg[] = 'Mã thiết bị đã bị trùng: '.implode(', ', $conflictCodes);
+            }
+            if (! empty($conflictSerials)) {
+                $msg[] = 'Số serial đã bị trùng: '.implode(', ', $conflictSerials);
+            }
+            session()->flash('error', implode('. ', $msg).'. Vui lòng tải lại file.');
             $this->clearPreviewRows();
             $this->step = 'upload';
 
@@ -206,21 +222,38 @@ class EquipmentImport extends Component
             }
         }
 
-        // Insert từng dòng hợp lệ — không dùng try/catch trong transaction
-        // để tránh vấn đề savepoint với PostgreSQL
-        foreach ($validToImport as $row) {
-            Equipment::create(array_merge($row['data'], [
-                'import_batch_id' => $batchRecord->id,
-            ]));
-            $successCount++;
-        }
+        try {
+            DB::transaction(function () use ($batchRecord, $validToImport, &$successCount) {
+                foreach ($validToImport as $row) {
+                    Equipment::create(array_merge($row['data'], [
+                        'import_batch_id' => $batchRecord->id,
+                    ]));
+                    $successCount++;
+                }
+            });
 
-        $batchRecord->update([
-            'success_rows' => $successCount,
-            'failed_rows' => $failedCount,
-            'error_details' => $errorDetails,
-            'status' => $failedCount > 0 ? 'completed_with_errors' : 'completed',
-        ]);
+            $batchRecord->update([
+                'success_rows' => $successCount,
+                'failed_rows' => $failedCount,
+                'error_details' => $errorDetails,
+                'status' => $failedCount > 0 ? 'completed_with_errors' : 'completed',
+            ]);
+        } catch (\Throwable $e) {
+            $batchRecord->update([
+                'success_rows' => 0,
+                'failed_rows' => count($previewRows),
+                'error_details' => array_merge($errorDetails, [
+                    ['error' => $e->getMessage()],
+                ]),
+                'status' => 'failed',
+            ]);
+
+            $this->clearPreviewRows();
+            $this->step = 'upload';
+            session()->flash('error', 'Có lỗi xảy ra trong quá trình nhập dữ liệu: '.$e->getMessage());
+
+            return;
+        }
 
         $this->clearPreviewRows();
         $this->createdBatchId = $batchRecord->id;

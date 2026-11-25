@@ -6,11 +6,11 @@ use App\Enums\DocumentStatusEnum;
 use App\Enums\DocumentTypeEnum;
 use App\Enums\EquipmentConditionEnum;
 use App\Models\Equipment;
-use App\Models\EquipmentConditionHistory;
 use App\Models\EquipmentDocument;
+use App\Services\EquipmentConditionService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class EquipmentShow extends Component
@@ -84,7 +84,7 @@ class EquipmentShow extends Component
         return redirect()->route('equipment.index');
     }
 
-    public function updateCondition()
+    public function updateCondition(EquipmentConditionService $conditionService)
     {
         $this->authorize('updateCondition', $this->equipment);
 
@@ -104,21 +104,13 @@ class EquipmentShow extends Component
             return;
         }
 
-        DB::transaction(function () use ($oldCondition) {
-            $this->equipment->update([
-                'condition' => $this->newCondition,
-            ]);
-
-            EquipmentConditionHistory::create([
-                'equipment_id' => $this->equipment->id,
-                'old_condition' => $oldCondition,
-                'new_condition' => $this->newCondition,
-                'reason' => $this->conditionReason,
-                'note' => $this->conditionNote ?: null,
-                'checked_by' => auth()->id(),
-                'checked_at' => now(),
-            ]);
-        });
+        $conditionService->updateCondition(
+            $this->equipment,
+            $this->newCondition,
+            $this->conditionReason,
+            $this->conditionNote,
+            auth()->user()
+        );
 
         $this->equipment->refresh();
         $this->equipment->load('conditionHistories.checkedBy');
@@ -153,9 +145,14 @@ class EquipmentShow extends Component
         $this->authorize('update', $this->equipment);
 
         $this->validate([
-            'docStatus' => 'required|in:'.implode(',', array_column(DocumentStatusEnum::cases(), 'value')),
+            'editingDocType' => ['required', Rule::enum(DocumentTypeEnum::class)],
+            'docStatus' => ['required', Rule::enum(DocumentStatusEnum::class)],
             'docValidUntil' => 'nullable|date',
             'docNote' => 'nullable|string|max:1000',
+        ], [
+            'editingDocType.required' => 'Vui lòng chọn loại hồ sơ giấy tờ.',
+            'editingDocType.Illuminate\Validation\Rules\Enum' => 'Loại hồ sơ giấy tờ không hợp lệ.',
+            'docStatus.required' => 'Vui lòng chọn trạng thái hồ sơ.',
         ]);
 
         EquipmentDocument::updateOrCreate(

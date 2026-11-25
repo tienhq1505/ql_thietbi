@@ -94,7 +94,7 @@ class DocumentReportExport implements FromCollection, ShouldAutoSize, WithHeadin
                 $row[$dt->value] = sprintf('%d/%d', $hasCount, $eqCount);
             }
 
-            $rows->push($row);
+            $rows->push(array_map([self::class, 'escapeFormula'], $row));
         }
 
         // Summary Row TỔNG
@@ -105,9 +105,22 @@ class DocumentReportExport implements FromCollection, ShouldAutoSize, WithHeadin
         foreach ($docTypes as $dt) {
             $totalRow[$dt->value] = sprintf('%d/%d', $totalDocs[$dt->value], $totalEq);
         }
-        $rows->push($totalRow);
+        $rows->push(array_map([self::class, 'escapeFormula'], $totalRow));
 
         return $rows;
+    }
+
+    public static function escapeFormula(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        if ($value !== '' && in_array($value[0], ['=', '+', '-', '@'], true)) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 
     public function styles(Worksheet $sheet): array

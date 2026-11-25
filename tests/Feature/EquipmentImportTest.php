@@ -118,4 +118,38 @@ class EquipmentImportTest extends TestCase
         $this->assertNotNull($importedEquipment);
         $this->assertNotNull($importedEquipment->location_id);
     }
+
+    public function test_confirm_import_rejects_duplicate_serial_number(): void
+    {
+        Artisan::call('equipment:generate-sample-import');
+
+        $samplePath = storage_path('app/samples/sample_import.xlsx');
+        $uploadedFile = UploadedFile::fake()->createWithContent('sample_import.xlsx', file_get_contents($samplePath));
+
+        $test = Livewire::actingAs($this->adminUser)
+            ->test(EquipmentImport::class)
+            ->set('file', $uploadedFile)
+            ->call('uploadAndPreview')
+            ->assertSet('step', 'preview');
+
+        // Tạo trước 1 thiết bị trùng serial với file mẫu (SN-SMP-001)
+        Equipment::create([
+            'code' => 'EQ-EXISTING-SERIAL',
+            'name' => 'Thiết bị trùng serial',
+            'serial_number' => 'SN-SMP-001',
+            'serial_pending' => false,
+            'equipment_model_id' => EquipmentModel::first()->id,
+            'category_id' => EquipmentCategory::first()->id,
+            'manufacturer_id' => Manufacturer::first()->id,
+            'department_id' => Department::first()->id,
+        ]);
+
+        // Xác nhận import phải bị chặn và quay lại step upload
+        $test->call('confirmImport')
+            ->assertSet('step', 'upload')
+            ->assertSee('Số serial đã bị trùng');
+
+        // Không import thêm thiết bị nào từ file
+        $this->assertEquals(1, Equipment::count());
+    }
 }

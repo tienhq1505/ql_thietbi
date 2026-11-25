@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" class="h-full bg-slate-900">
+<html lang="vi" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <title>{{ $title ?? 'Hệ thống Quản lý Trang thiết bị Y tế - MEMS' }}</title>
@@ -12,7 +12,7 @@
     </style>
     @livewireStyles
 </head>
-<body class="h-full bg-slate-900 text-slate-100 flex items-center justify-center p-4">
+<body class="h-full bg-gradient-to-br from-blue-50 via-sky-50 to-slate-100 text-slate-800 flex items-center justify-center p-4 min-h-screen">
     {{ $slot }}
     @livewireScripts
 </body>

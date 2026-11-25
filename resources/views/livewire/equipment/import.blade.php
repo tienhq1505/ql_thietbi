@@ -1,4 +1,15 @@
 <div class="space-y-6">
+    @if(session()->has('error'))
+        <div class="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-sm font-medium">
+            {{ session('error') }}
+        </div>
+    @endif
+    @if(session()->has('message'))
+        <div class="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 text-sm font-medium">
+            {{ session('message') }}
+        </div>
+    @endif
+
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

@@ -4,16 +4,17 @@ namespace App\Livewire\Equipment;
 
 use App\Enums\EquipmentStatusEnum;
 use App\Enums\OwnershipTypeEnum;
-use App\Http\Requests\UpdateEquipmentRequest;
 use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Models\EquipmentDepartmentHistory;
 use App\Models\EquipmentModel;
 use App\Models\Location;
 use App\Models\Manufacturer;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class EquipmentEdit extends Component
@@ -102,10 +103,44 @@ class EquipmentEdit extends Component
 
     public function save()
     {
-        $request = new UpdateEquipmentRequest;
-        $request->setRouteResolver(fn () => request()->route()->setParameter('equipment', $this->equipment));
+        $rules = [
+            'code' => ['required', 'string', 'max:50', Rule::unique('equipment', 'code')->ignore($this->equipment->id)],
+            'name' => ['required', 'string', 'max:255'],
+            'equipment_model_id' => ['required', 'exists:equipment_models,id'],
+            'category_id' => ['required', 'exists:equipment_categories,id'],
+            'manufacturer_id' => ['required', 'exists:manufacturers,id'],
+            'serial_number' => ['nullable', 'string', 'max:100', Rule::unique('equipment', 'serial_number')->ignore($this->equipment->id)],
+            'manufacture_year' => ['nullable', 'integer', 'min:1970', 'max:'.date('Y')],
+            'origin_country' => ['nullable', 'string', 'max:100'],
+            'import_date' => ['nullable', 'date'],
+            'usage_start_date' => ['nullable', 'date'],
+            'purchase_price' => ['nullable', 'numeric', 'min:0'],
+            'funding_source' => ['nullable', 'string', 'max:255'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+            'warranty_expiration_date' => ['nullable', 'date'],
+            'department_id' => ['required', 'exists:departments,id'],
+            'location_id' => [
+                'nullable',
+                'exists:locations,id',
+                function ($attribute, $value, $fail) {
+                    if ($value && $this->department_id) {
+                        $location = Location::find($value);
+                        if ($location && (int) $location->department_id !== (int) $this->department_id) {
+                            $fail('Vị trí được chọn không thuộc Khoa / Phòng đã chọn.');
+                        }
+                    }
+                },
+            ],
+            'manager_id' => ['nullable', 'exists:users,id'],
+            'manager_name' => ['nullable', 'string', 'max:255'],
+            'status' => ['required', Rule::enum(EquipmentStatusEnum::class)],
+            'ownership_type' => ['nullable', Rule::enum(OwnershipTypeEnum::class)],
+            'origin_model_text' => ['nullable', 'string'],
+            'source_ref' => ['nullable', 'string', 'max:100'],
+            'note' => ['nullable', 'string'],
+        ];
 
-        $validatedData = $this->validate($request->rules());
+        $validatedData = $this->validate($rules);
 
         $serial = trim((string) ($validatedData['serial_number'] ?? ''));
         if ($serial === '') {
@@ -116,9 +151,26 @@ class EquipmentEdit extends Component
             $validatedData['serial_pending'] = false;
         }
 
+        $validatedData['location_id'] = ! empty($validatedData['location_id']) ? (int) $validatedData['location_id'] : null;
+        $validatedData['supplier_id'] = ! empty($validatedData['supplier_id']) ? (int) $validatedData['supplier_id'] : null;
+        $validatedData['manager_id'] = ! empty($validatedData['manager_id']) ? (int) $validatedData['manager_id'] : null;
+
         $validatedData['ownership_type'] = $validatedData['ownership_type'] ?? 'mua_sam';
 
+        $oldDepartmentId = $this->equipment->department_id;
+        $newDepartmentId = (int) $validatedData['department_id'];
+
         $this->equipment->update($validatedData);
+
+        if ($oldDepartmentId && $newDepartmentId && (int) $oldDepartmentId !== (int) $newDepartmentId) {
+            EquipmentDepartmentHistory::create([
+                'equipment_id' => $this->equipment->id,
+                'from_department_id' => $oldDepartmentId,
+                'to_department_id' => $newDepartmentId,
+                'assigned_by' => auth()->id(),
+                'note' => 'Điều chuyển qua cập nhật hồ sơ thiết bị',
+            ]);
+        }
 
         session()->flash('message', 'Cập nhật thông tin thiết bị thành công!');
 
